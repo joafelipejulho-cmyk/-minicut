@@ -1,71 +1,49 @@
 <!doctype html>
+
 <html lang="pt-BR">
+
 <head>
+
 <meta charset="utf-8">
+
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
 <meta name="theme-color" content="#090b10">
+
 <meta name="apple-mobile-web-app-capable" content="yes">
+
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
 <title>MiniCut Mobile — iPhone</title>
+
 <style>
+
 *{box-sizing:border-box}body{margin:0;background:#080a0f;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}button,input{font:inherit}button{cursor:pointer}
+
 .app{height:100dvh;display:flex;flex-direction:column;padding-top:env(safe-area-inset-top)}header{height:58px;display:flex;align-items:center;gap:8px;padding:0 10px;background:#11141b;border-bottom:1px solid #272d39}.logo{font-weight:900;font-size:19px}.logo span{color:#8062ff}.grow{flex:1}.btn{border:1px solid #343b49;background:#1a1e27;border-radius:11px;padding:9px 11px;font-weight:700}.primary{background:#8062ff;border-color:#8062ff}
+
 main{flex:1;min-height:0;display:flex;flex-direction:column}.preview{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#050609;padding:8px}.viewer{position:relative;max-width:100%;max-height:100%;background:#000;border-radius:10px;overflow:hidden}.viewer video{display:block;max-width:100%;max-height:60dvh}.empty{padding:30px;text-align:center;color:#98a1b1}.empty strong{display:block;color:#fff;font-size:20px;margin-bottom:7px}.text{position:absolute;inset:0;display:flex;justify-content:center;align-items:flex-end;padding:28px 20px;font-weight:800;font-size:30px;text-align:center;text-shadow:0 2px 8px #000;pointer-events:none}
+
 .controls{display:flex;align-items:center;gap:8px;padding:9px 10px;background:#11141b;border-top:1px solid #272d39}.play{width:43px;height:40px;padding:0}.seek{flex:1;accent-color:#8062ff}.time{font-size:12px;color:#aeb5c2;font-variant-numeric:tabular-nums}.timeline{height:96px;padding:12px;background:#0c0f15;border-top:1px solid #272d39}.track{height:48px;background:#171b23;border:1px solid #3a4250;border-radius:8px;position:relative}.clip{position:absolute;inset:3px;border:2px solid #8062ff;background:#30245e;border-radius:6px}.handle{position:absolute;top:-2px;bottom:-2px;width:12px;background:#fff;border-radius:6px;touch-action:none}.left{left:-7px}.right{right:-7px}.tools{display:flex;gap:7px;overflow-x:auto;padding:9px 10px calc(9px + env(safe-area-inset-bottom));background:#11141b;border-top:1px solid #272d39}.tool{min-width:72px;border:1px solid #343b49;background:#191d26;border-radius:10px;padding:7px 8px;font-size:11px}.tool b{display:block;font-size:19px}
+
 .sheet{position:fixed;z-index:5;left:0;right:0;bottom:0;background:#141820;border-top:1px solid #394150;border-radius:18px 18px 0 0;padding:16px 16px calc(18px + env(safe-area-inset-bottom));transform:translateY(110%);transition:.2s}.sheet.show{transform:translateY(0)}.sheet h3{margin:0 0 13px}.field label{display:block;color:#9da6b5;font-size:12px;margin-bottom:5px}.field input{width:100%;background:#1b2029;border:1px solid #38404d;color:white;border-radius:9px;padding:10px;margin-bottom:12px}.row{display:flex;gap:10px}.row>*{flex:1}.toast{position:fixed;z-index:20;left:50%;bottom:95px;transform:translate(-50%,15px);opacity:0;background:#fff;color:#111;padding:10px 14px;border-radius:12px;font-weight:700;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+
 </style>
+
 </head>
+
 <body>
+
 <div class="app">
+
 <header><div class="logo">Mini<span>Cut</span></div><button class="btn" id="gallery">📱 Galeria</button><div class="grow"></div><button class="btn" id="new">Novo</button><button class="btn primary" id="export">Exportar</button></header>
+
 <main>
+
 <div class="preview"><div class="viewer"><video id="video" playsinline preload="metadata"></video><div class="empty" id="empty"><strong>MiniCut Mobile</strong>Toque em Galeria para escolher seu vídeo</div><div class="text" id="textLayer"></div></div></div>
+
 <div class="controls"><button class="btn play" id="play">▶</button><span class="time" id="cur">00:00</span><input id="seek" class="seek" type="range" min="0" max="0" step=".01" value="0"><span class="time" id="dur">00:00</span></div>
+
 <div class="timeline"><div class="track" id="track"><div class="clip" id="clip"><span class="handle left" id="left"></span><span class="handle right" id="right"></span></div></div></div>
-<div class="tools"><button class="tool" id="textBtn"><b>Ｔ</b>Texto</button><button class="tool" id="musicBtn"><b>♫</b>Música</button><button class="tool" id="volBtn"><b>🔊</b>Volume</button><button class="tool" id="homeBtn"><b>＋</b>Tela inicial</button></div>
-</main>
-<input id="videoFile" type="file" accept="video/*" hidden>
-<input id="audioFile" type="file" accept="audio/*" hidden>
-<div class="sheet" id="sheet"><button class="btn" id="close">Fechar</button><h3 id="sheetTitle"></h3><div id="sheetBody"></div></div><div class="toast" id="toast"></div>
-<script>
-'use strict';
-const $=id=>document.getElementById(id),v=$('video'),vf=$('videoFile');
-let objectURL=null,start=0,end=0,drag=null,bgAudio=null,installEvent=null;
-const fmt=s=>String(Math.floor((s||0)/60)).padStart(2,'0')+':'+String(Math.floor((s||0)%60)).padStart(2,'0');
-function msg(t){const x=$('toast');x.textContent=t;x.classList.add('show');clearTimeout(window._toast);window._toast=setTimeout(()=>x.classList.remove('show'),1800)}
-function openGallery(){vf.click()}
-$('gallery').addEventListener('click',openGallery);
-$('empty').addEventListener('click',openGallery);
-vf.addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);v.src=objectURL;$('empty').style.display='none';vf.value='';msg('Vídeo carregado')});
-v.addEventListener('loadedmetadata',()=>{start=0;end=v.duration||0;$('seek').max=end;$('dur').textContent=fmt(end);updateClip()});
-$('play').addEventListener('click',()=>{if(!v.src){msg('Escolha um vídeo primeiro');return}v.paused?v.play():v.pause()});
-v.addEventListener('play',()=>$('play').textContent='❚❚');v.addEventListener('pause',()=>$('play').textContent='▶');
-v.addEventListener('timeupdate',()=>{$('seek').value=v.currentTime;$('cur').textContent=fmt(v.currentTime);if(end&&v.currentTime>=end){v.pause();v.currentTime=start}});
-$('seek').addEventListener('input',e=>v.currentTime=Number(e.target.value));
-function updateClip(){if(!v.duration)return;$('clip').style.left=(start/v.duration*100)+'%';$('clip').style.right=((v.duration-end)/v.duration*100)+'%'}
-function handle(el,side){el.addEventListener('pointerdown',e=>{e.preventDefault();drag=side;el.setPointerCapture(e.pointerId)});el.addEventListener('pointermove',e=>{if(!drag||!v.duration)return;const r=$('track').getBoundingClientRect(),t=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*v.duration;if(side==='l')start=Math.min(t,end-.1);else end=Math.max(t,start+.1);updateClip();if(v.currentTime<start||v.currentTime>end)v.currentTime=start});['pointerup','pointercancel'].forEach(n=>el.addEventListener(n,()=>drag=null))}
-handle($('left'),'l');handle($('right'),'r');
-function sheet(title,body){$('sheetTitle').textContent=title;$('sheetBody').innerHTML=body;$('sheet').classList.add('show')}
-$('close').onclick=()=>$('sheet').classList.remove('show');
-$('textBtn').onclick=()=>sheet('Texto',`<div class="field"><label>Texto</label><input id="textInput" type="text" placeholder="Digite seu texto"></div><div class="field"><label>Tamanho</label><input id="textSize" type="range" min="14" max="70" value="30"></div>`);
-$('sheetBody').addEventListener('input',e=>{if(e.target.id==='textInput')$('textLayer').textContent=e.target.value;if(e.target.id==='textSize')$('textLayer').style.fontSize=e.target.value+'px';if(e.target.id==='vol')v.volume=Number(e.target.value)});
-$('musicBtn').onclick=()=>sheet('Música',`<p style="color:#aeb5c2">Escolha uma música/áudio armazenado no iPhone.</p><button class="btn primary" id="chooseAudio">Escolher áudio</button>`);
-$('sheetBody').addEventListener('click',e=>{if(e.target.id==='chooseAudio')$('audioFile').click()});
-$('audioFile').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(bgAudio)bgAudio.pause();bgAudio=new Audio(URL.createObjectURL(f));bgAudio.loop=true;bgAudio.volume=.7;bgAudio.play().catch(()=>{});msg('Áudio selecionado')});
-$('volBtn').onclick=()=>sheet('Volume',`<div class="field"><label>Volume do vídeo</label><input id="vol" type="range" min="0" max="1" step=".01" value="${v.volume}"></div>`);
-$('homeBtn').onclick=async()=>{if(installEvent){installEvent.prompt();await installEvent.userChoice;installEvent=null}else msg('No iPhone: Safari → Compartilhar → Adicionar à Tela de Início')};
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installEvent=e});
-$('new').onclick=()=>{v.pause();v.removeAttribute('src');v.load();if(objectURL)URL.revokeObjectURL(objectURL);objectURL=null;start=end=0;$('empty').style.display='block';$('seek').max=0;$('seek').value=0;$('cur').textContent='00:00';$('dur').textContent='00:00';$('textLayer').textContent='';if(bgAudio){bgAudio.pause();bgAudio=null}msg('Novo projeto')};
-$('export').onclick=async()=>{
- if(!v.src||!v.duration){msg('Escolha um vídeo primeiro');return}
- if(!window.MediaRecorder||!HTMLCanvasElement.prototype.captureStream){msg('Este Safari não permite exportação por este método');return}
- const c=document.createElement('canvas'),ctx=c.getContext('2d');c.width=v.videoWidth;c.height=v.videoHeight;
- const stream=c.captureStream(30);
- let mime='video/mp4';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';const rec=new MediaRecorder(stream,{mimeType:mime});
- const chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
- rec.onstop=()=>{const blob=new Blob(chunks,{type:mime}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='minicut-editado.'+(mime.includes('mp4')?'mp4':'webm');document.body.appendChild(a);a.click();a.remove();msg('Exportação concluída')};
- v.currentTime=start;await v.play();rec.start(250);msg('Exportando…');
- const draw=()=>{ctx.drawImage(v,0,0,c.width,c.height);const text=$('textLayer').textContent;if(text){ctx.fillStyle='#fff';ctx.font='800 '+Math.round(30*c.width/Math.max(320,$('viewer').clientWidth))+'px -apple-system,sans-serif';ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(text,c.width/2,c.height-35)}if(v.currentTime<end)requestAnimationFrame(draw);else{v.pause();rec.stop()}};draw();
-};
-</script>
-</body></html>
+
+<div class="tools"><button class="tool" id="cut
